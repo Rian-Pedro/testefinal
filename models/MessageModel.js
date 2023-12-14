@@ -24,7 +24,7 @@ class MessageModel {
     //   msg[data] 
     // }
 
-    msg.id = str(msg._id)
+    msg.id = String(msg._id)
     delete msg._id
 
     return msg

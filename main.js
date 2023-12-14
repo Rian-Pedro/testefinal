@@ -1,16 +1,37 @@
+require("dotenv").config()
+require("moment-timezone")
+
 const MessageModel = require('./models/MessageModel')
 
-const server = require('http').createServer()
+const http = require('http')
 const mongoose = require('mongoose')
+
+const express = require("express")
+const app = express()
+
+const server = http.createServer(app)
 
 const moment = require('moment')
 
+const cors = require("cors")
+
 moment.locale('pt-br')
+
+app.use(cors())
+
+app.get('/', (req, res) => {
+  res.send("hello")
+})
 
 mongoose.connect(`mongodb+srv://admin:${"xLR1bW5fL1Z8vogq"}@talkhub.b0k5fuv.mongodb.net/?retryWrites=true&w=majority`)
   .then(() => {
-    const { Server } = require('socket.io')
-    const io = new Server(server)
+    const socketIO = require('socket.io')
+    const io = socketIO(server, {
+      cors: {
+        origin: process.env.ORIGINURL,
+        methods: ["GET", "POST"]
+      }
+    })
     
     io.on('connect', (socket) => {
 
@@ -18,7 +39,7 @@ mongoose.connect(`mongodb+srv://admin:${"xLR1bW5fL1Z8vogq"}@talkhub.b0k5fuv.mong
         const { room } = data
 
         socket.join(room)
-        print(room + '\n\n\n\n')
+        console.log(room + '\n\n\n\n')
 
         socket.to(room).emit("joined_room", {room, message: 'entrou na sala.'})
       })
@@ -48,8 +69,10 @@ mongoose.connect(`mongodb+srv://admin:${"xLR1bW5fL1Z8vogq"}@talkhub.b0k5fuv.mong
       socket.on('message', (data) => {
         const { sender, recipient, content, room } = data
 
-        const date = moment().format('L')
-        const hour = moment().format('LTS')
+        const now = moment().tz("America/Recife")
+
+        const date = now.format('YYYY-MM-DD')
+        const hour = now.format('h:mm:ss')
 
         msg = {
           sender, 
@@ -76,7 +99,11 @@ mongoose.connect(`mongodb+srv://admin:${"xLR1bW5fL1Z8vogq"}@talkhub.b0k5fuv.mong
         socket.to(recipient).emit('user_typing', {sender, recipient})
       })
 
+      socket.on('disconnect', () => {
+        console.log("desconectou")
+      })
+
     })
 
-    server.listen(3000, () => {console.log('http://localhost:3000')})
+    server.listen(process.env.PORT, () => {console.log('http://localhost:3000')})
   })
